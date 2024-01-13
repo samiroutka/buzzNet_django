@@ -13,4 +13,7 @@ urlpatterns = [
   path('user/<name>/posts/<id>', UserPost.as_view()),
   
   path('posts/<title>', PostView.as_view()),
+
+  path('mediadowloading/images/', MediaImagesView.as_view()),
+  path('mediadowloading/videos/', MediaVideosView.as_view()),
 ]

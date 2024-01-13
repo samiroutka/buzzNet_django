@@ -6,6 +6,8 @@ from .models import *
 import json  
 from datetime import datetime
 from django.forms.models import model_to_dict
+import moviepy.editor as moviepy
+import os
 
 # --------------------
 def getValidDict(object):
@@ -39,13 +41,6 @@ def getAllUsers():
     users[users.index(user)] = getValidDict(user)
   return users
 
-# def findPostsWithTitle(title):
-#   goodPosts = []
-#   for post in getAllPosts():
-#     if title in post['title']:
-#       goodPosts.append(post)
-#   return goodPosts
-
 def findPostsWithTitle(title):
   posts = []
   for user in User.objects.all():
@@ -54,6 +49,9 @@ def findPostsWithTitle(title):
         post['user'] = user.name
         posts.append(post)
   return posts
+
+def findExtension(path):
+  return path[-6:].split('.')[1]
 
 # --------------------
 class LoginView(APIView):
@@ -182,9 +180,26 @@ class UserPost(APIView):
     user.save()
     return Response(posts)
 
-
 # -----------------------------------------------------
 
 class PostView(APIView):
   def get(self, request, title):
     return Response(findPostsWithTitle(title))
+
+# -----------------------------------------------------
+
+class MediaImagesView(APIView):
+  def post(self, request):
+    new_media = MediaImages.objects.create(media=request.data['media'])
+    return Response(new_media.media.name)
+
+class MediaVideosView(APIView):
+  def post(self, request):
+    new_media = MediaVideos.objects.create(media=request.data['media'])
+    media_path = new_media.media.path
+    media_extension = findExtension(media_path)
+    video = moviepy.VideoFileClip(media_path)
+    video.write_videofile(media_path.replace(media_extension, 'webm'))
+    os.remove(media_path)
+    new_media.media = media_path.replace(media_extension, 'webm')
+    return Response(new_media.media.name)

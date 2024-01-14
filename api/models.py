@@ -1,6 +1,7 @@
 from django.db import models
 from jsonfield import JSONField
 from django_resized import ResizedImageField
+import moviepy.editor as moviepy
 
 class User(models.Model):
   name = models.CharField(max_length=30)
@@ -13,8 +14,6 @@ class User(models.Model):
 
 class MediaImages(models.Model):
   media = ResizedImageField(quality=100, force_format='WEBP', upload_to='api/media/images/')
-
-import moviepy.editor as moviepy
 
 class MediaVideos(models.Model):
   media = models.FileField(upload_to='api/media/videos/')

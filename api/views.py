@@ -18,14 +18,15 @@ def getValidDict(object):
     dict['avatar'] = None
   return dict
 
-def getPostById(id, posts):
+def getPostById(id, posts, user_of_avatar = False):
   for post in posts:
     if post['id'] == int(id):
+      post['avatar'] = str(user_of_avatar.avatar) if user_of_avatar else None
       return post
 
-def getUpdatePosts(title, content, post, posts):
-  post['title'] = title
-  post['content'] = content
+def getUpdatePosts(data, post, posts):
+  for element in data:
+    post[element] = data[element]
   posts[posts.index(post)] = post
   return posts
 
@@ -45,8 +46,9 @@ def findPostsWithTitle(title):
   posts = []
   for user in User.objects.all():
     for post in json.loads(user.posts):
-      if title in post['title']:
+      if title.lower() in post['title'].lower():
         post['user'] = user.name
+        print(user.avatar)
         posts.append(post)
   return posts
 
@@ -134,6 +136,7 @@ class UserPosts(APIView):
       'id': 1,
       'title': '',
       'content': '',
+      'preview': '',
       'date': str(datetime.now().date())
     }
     try:
@@ -158,7 +161,7 @@ class UserPost(APIView):
   def get(self, request, name, id):
     try:
       user = User.objects.get(name = name)
-      return Response(getPostById(id, json.loads(user.posts)))
+      return Response(getPostById(id, json.loads(user.posts), user))
     except User.DoesNotExist:
       return Response('NAME')
   
@@ -166,7 +169,7 @@ class UserPost(APIView):
     user = User.objects.get(name = name)
     posts = json.loads(user.posts)
     post = getPostById(id, posts)
-    posts = getUpdatePosts(request.data['title'], request.data['content'], post, posts)
+    posts = getUpdatePosts(request.data, post, posts)
     user.posts = json.dumps(posts)
     user.save()
     return Response(posts)

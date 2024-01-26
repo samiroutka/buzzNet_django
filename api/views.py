@@ -21,7 +21,9 @@ def getValidDict(object):
 def getPostById(id, posts, user_of_avatar = False):
   for post in posts:
     if post['id'] == int(id):
-      post['avatar'] = str(user_of_avatar.avatar) if user_of_avatar else None
+      if user_of_avatar:
+        post['avatar'] = str(user_of_avatar.avatar)
+      else: pass
       return post
 
 def getUpdatePosts(data, post, posts):
@@ -42,18 +44,23 @@ def getAllUsers():
     users[users.index(user)] = getValidDict(user)
   return users
 
-def findPostsWithTitle(title):
+def findPostsWithTitle(title, user=False):
   posts = []
   for user in User.objects.all():
     for post in json.loads(user.posts):
       if title.lower() in post['title'].lower():
-        post['user'] = user.name
-        print(user.avatar)
+        post['user'] = {'name': user.name, 'avatar': str(user.avatar)} if user else None
         posts.append(post)
   return posts
 
 def findExtension(path):
   return path[-6:].split('.')[1]
+
+def getAvatars(users):
+  avatars = {}
+  for user in users:
+    avatars[user] = str(User.objects.get(name = user).avatar)
+  return avatars
 
 # --------------------
 class LoginView(APIView):
@@ -89,7 +96,6 @@ class UserApi(APIView):
   def get(self, request, name):
     try:
       user = User.objects.get(name = name)
-      print(user)
       return Response(getValidDict(user))
     except Exception as error:
       if str(error) == 'User matching query does not exist.':
@@ -105,7 +111,6 @@ class UserApi(APIView):
         if request.data[element] != 'undefined':
           user.__dict__[element] = request.data[element]
       user.save()
-      print(getValidDict(user))
       return Response(getValidDict(user))
     except Exception as error:
       print(error)
@@ -118,6 +123,10 @@ class SearchUserApi(APIView):
       if name in user['name']:
         searchedUsers.append(user)
     return Response(searchedUsers)
+  
+class SearchAvatars(APIView):
+  def post(self, request):
+    return Response(getAvatars(json.loads(request.body)))
       
 class UserPosts(APIView):
   def get(self, request, name):
@@ -187,7 +196,13 @@ class UserPost(APIView):
 
 class PostView(APIView):
   def get(self, request, title):
-    return Response(findPostsWithTitle(title))
+    getUser = False
+    try:
+      request.query_params['user']
+      getUser = True
+    except:
+      pass
+    return Response(findPostsWithTitle(title, getUser))
 
 # -----------------------------------------------------
 

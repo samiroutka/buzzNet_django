@@ -6,6 +6,7 @@ urlpatterns = [
   path('register/', RegisterView.as_view()),
 
   path('users/<name>', SearchUserApi.as_view()),
+  path('users/avatars/', SearchAvatars.as_view()),
   path('users/', UsersApi.as_view()),
 
   path('user/<name>', UserApi.as_view()),

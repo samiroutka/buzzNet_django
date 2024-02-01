@@ -28,7 +28,10 @@ def getPostById(id, posts, user_of_avatar = False):
 
 def getUpdatePosts(data, post, posts):
   for element in data:
-    post[element] = data[element]
+    try:
+      post[element] = json.loads(data[element])
+    except: 
+      post[element] = data[element]
   posts[posts.index(post)] = post
   return posts
 
@@ -146,6 +149,8 @@ class UserPosts(APIView):
       'title': '',
       'content': '',
       'preview': '',
+      'tops': [],
+      'bottoms': [],
       'date': str(datetime.now().date())
     }
     try:

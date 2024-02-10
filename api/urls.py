@@ -10,6 +10,7 @@ urlpatterns = [
   path('users/', UsersApi.as_view()),
 
   path('user/<name>', UserApi.as_view()),
+  path('user/<name>/line/', UserLineApi.as_view()),
   path('user/<name>/posts', UserPosts.as_view()),
   path('user/<name>/posts/<id>', UserPost.as_view()),
   

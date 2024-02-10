@@ -119,6 +119,25 @@ class UserApi(APIView):
       print(error)
       return Response('Wrong data')
       
+class UserLineApi(APIView):
+  def get(self, request, name):
+    try:
+      user = User.objects.get(name = name)
+      line_of_posts = []
+      for subscription in json.loads(user.subscriptions):
+        subscription_user = User.objects.get(name = subscription)
+        for post in json.loads(subscription_user.posts):
+          if not(user.name in post['tops']) and not(user.name in post['bottoms']):
+            post['user'] = {'name': subscription_user.name, 'avatar': str(subscription_user.avatar)}
+            line_of_posts.append(post)
+      return Response(line_of_posts)
+    except Exception as error:
+      if str(error) == 'User matching query does not exist.':
+        return Response('Wrong user')
+      else:
+        print(error)
+        return Response('Error')
+
 class SearchUserApi(APIView):
   def get(self, request, name):
     searchedUsers = []

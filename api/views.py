@@ -66,8 +66,59 @@ def getAvatars(users):
   return avatars
 
 # --------------------
+
+def cleanExtraAvatars():
+  path_to_avatars = User.avatar.field.upload_to
+  users_avatars = []
+  for user in User.objects.all():
+    if user.avatar:
+      users_avatars.append(str(user.avatar).replace(path_to_avatars, ''))
+  for file_name in os.listdir(path_to_avatars):
+    if not(file_name in users_avatars):
+      os.remove(path_to_avatars + file_name)
+
+# При использовании не tinymce а ckeditor могут всплыть ошибки
+def cleanExtraImages(request):
+  base_url = request.scheme + '://' + request.META['HTTP_HOST']
+  path_to_images = MediaImages.media.field.upload_to
+  users_images = []
+  for user in User.objects.all():
+    if len(json.loads(user.posts)) > 0:
+      for post in json.loads(user.posts):
+        index_of_img = post['content'].find('img')
+        if index_of_img > -1:
+          from_img = post['content'][index_of_img:]
+          first_part_of_img = from_img[from_img.find('"')+1:]
+          raw_url = first_part_of_img[:first_part_of_img.find('"')]
+          image_url = raw_url.replace(base_url, '').replace(path_to_images, '').replace('/', '')
+          users_images.append(image_url)
+  for file_name in os.listdir(path_to_images):
+    if not(file_name in users_images):
+      MediaImages.objects.filter(media = path_to_images + file_name).delete()
+
+def cleanExtraVideos(request):
+  base_url = request.scheme + '://' + request.META['HTTP_HOST']
+  path_to_videos = MediaVideos.media.field.upload_to
+  users_videos = []
+  for user in User.objects.all():
+    if len(json.loads(user.posts)) > 0:
+      for post in json.loads(user.posts):
+        index_of_video = post['content'].find('video')
+        from_video_tag = post['content'][index_of_video:]
+        from_source_tag = from_video_tag[from_video_tag.find('source'):]
+        first_part_of_video = from_source_tag[from_source_tag.find('"')+1:]
+        raw_url = first_part_of_video[:first_part_of_video.find('"')]
+        video_url = raw_url.replace(base_url, '').replace(path_to_videos, '').replace('/', '')
+        users_videos.append(video_url)
+  for file_name in os.listdir(path_to_videos):
+    if not(file_name in users_videos):
+      MediaVideos.objects.filter(media = path_to_videos + file_name).delete()
+
+# --------------------
 class LoginView(APIView):
   def post(self, request):
+    cleanExtraImages(request)
+    cleanExtraVideos(request)
     try:
       user = User.objects.get(name=request.data['name'])
       if user.password == request.data['password']:
@@ -82,6 +133,9 @@ class LoginView(APIView):
   
 class RegisterView(APIView):
   def post(self, request):
+    # cleanExtraAvatars()
+    # cleanExtraImages(request)
+    # cleanExtraVideos(request)
     try:
       User.objects.get(name=request.data['name'])
       return Response('NAME')
@@ -238,10 +292,11 @@ class MediaImagesView(APIView):
 class MediaVideosView(APIView):
   def post(self, request):
     new_media = MediaVideos.objects.create(media=request.data['media'])
-    media_path = new_media.media.path
-    media_extension = findExtension(media_path)
-    video = moviepy.VideoFileClip(media_path)
-    video.write_videofile(media_path.replace(media_extension, 'webm'))
-    os.remove(media_path)
-    new_media.media = media_path.replace(media_extension, 'webm')
-    return Response(new_media.media.name)
+    local_media_path = new_media.media.path
+    media_extension = findExtension(local_media_path)
+    video = moviepy.VideoFileClip(local_media_path)
+    video.write_videofile(local_media_path.replace(media_extension, 'webm'))
+    os.remove(local_media_path)
+    new_media.media = str(new_media.media.url).replace(media_extension, 'webm')[1:]
+    new_media.save()
+    return Response(str(new_media.media))
